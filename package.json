@@ -1,8 +1,8 @@
 {
-  "name": "goit-react-woolf-hw-03-image-finder",
+  "name": "goit-react-woolf-hw-04-images",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://am1007.github.io/goit-react-woolf-hw-03-image-finder/",
+  "homepage": "https://am1007.github.io/goit-react-woolf-hw-04-images/",
   "dependencies": {
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "*",
