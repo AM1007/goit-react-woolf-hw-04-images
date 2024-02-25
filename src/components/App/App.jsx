@@ -1,64 +1,74 @@
-import React, { Component } from 'react';
+import { useState, useEffect } from 'react';
 import * as api from '../../services/api';
 import { SearchForm, ImageGallery, Button, Loader } from 'components';
+import { Notify } from 'notiflix/build/notiflix-notify-aio';
 
-export class App extends Component {
-  state = {
-    searchText: '',
-    page: 1,
-    images: [],
-    showBtn: false,
-    isLoading: false,
-  };
+export const App = () => {
+  const [searchText, setSearchText] = useState('');
+  const [page, setPage] = useState(1);
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(0);
 
-  componentDidUpdate(_, prevState) {
-    const { searchText, page } = this.state;
-    if (searchText !== prevState.searchText || page !== prevState.page) {
-      this.setState({ isLoading: true });
-      api
-        .getImages(searchText, page)
-        .then(({ hits, totalHits }) => {
-          this.setState(prevState => ({
-            images: [...prevState.images, ...hits],
-            showBtn: page < Math.ceil(totalHits / 12),
-          }));
-        })
-        .catch()
-        .finally(() => {
-          this.setState({ isLoading: false });
-        });
+  useEffect(() => {
+    if (searchText === '') {
+      return;
     }
-  }
 
-  handleSubmit = searchText => {
-    this.setState({ searchText, page: 1, images: [] });
+    async function addImages() {
+      try {
+        setIsLoading(true);
+
+        const data = await api.getImages(searchText, page);
+
+        if (data.hits.length === 0) {
+          return Notify.info('Sorry image not found...');
+        }
+
+        const normalizedImages = api.normalizedImages(data.hits);
+
+        setImages(prevImages => [...prevImages, ...normalizedImages]);
+        setIsLoading(false);
+        setTotalPages(Math.ceil(data.totalHits / 12));
+      } catch {
+        Notify.error('Something went wrong!');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    addImages();
+  }, [searchText, page]);
+
+  const handleLoadMore = () => {
+    setPage(prevPage => prevPage + 1);
   };
 
-  handleLoadMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
+  const handleSubmit = query => {
+    setSearchText(query);
+    setImages([]);
+    setPage(1);
   };
 
-  render() {
-    const { images, showBtn, isLoading } = this.state;
-    return (
-      <>
-        <SearchForm handleSubmit={this.handleSubmit} />
-        {images.length > 0 ? (
-          <ImageGallery images={images} />
-        ) : (
-          <p
-            style={{
-              padding: 100,
-              textAlign: 'center',
-              fontSize: 20,
-            }}
-          >
-            Image gallery is empty..
-          </p>
-        )}
-        {showBtn && <Button onClick={this.handleLoadMore} />}
-        {isLoading && <Loader />}
-      </>
-    );
-  }
-}
+  return (
+    <>
+      <SearchForm handleSubmit={handleSubmit} />
+      {images.length > 0 ? (
+        <ImageGallery images={images} />
+      ) : (
+        <p
+          style={{
+            padding: 100,
+            textAlign: 'center',
+            fontSize: 20,
+          }}
+        >
+          Image gallery is empty..
+        </p>
+      )}
+      {images.length > 0 && totalPages !== page && !isLoading && (
+        <Button onClick={handleLoadMore} />
+      )}
+      {isLoading && <Loader />}
+    </>
+  );
+};
